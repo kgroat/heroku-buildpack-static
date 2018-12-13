@@ -37,6 +37,12 @@ http {
   #Must read the body in 5 seconds.
   client_body_timeout 5;
 
+<% proxies.each do |location, hash| %>
+  upstream <%= hash['name'] %> {
+    server <%= hash['host'] %> fail_timeout=60s max_fails=2;
+  }
+<% end %>
+
   server {
     listen <%= port %> reuseport;
     charset <%= encoding %>;
@@ -92,9 +98,8 @@ http {
 
   # fallback proxy named match
   <% proxies.each do |location, hash| %>
-    set $<%= hash['name'] %> <%= hash['host'] %>;
     location @<%= location %> {
-      proxy_pass $<%= hash['name'] %>;
+      proxy_pass http://<%= hash['name'] %>;
       proxy_redirect                      off;
       proxy_http_version                  1.1;
       proxy_set_header    Upgrade         $http_upgrade;
@@ -103,7 +108,6 @@ http {
       proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header    Host            $http_host;
       proxy_set_header    X-NginX-Proxy   true;
-      proxy_ssl_server_name on;
     }
   <% end %>
 
